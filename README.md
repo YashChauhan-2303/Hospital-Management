@@ -168,5 +168,3 @@ python-decouple
 MIT License — free to use, modify, and distribute.
 
 ---
-
-> Built with ❤️ using Django & Google Gemini
