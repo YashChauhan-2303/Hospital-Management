@@ -1,0 +1,111 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ form_title }} — MediCare HMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter','sans-serif'] } } } };</script>
+  <link rel="stylesheet" href="{% static 'css/custom.css' %}" />
+</head>
+<body class="bg-[#0f172a] font-sans antialiased min-h-screen flex items-start justify-center py-10 px-4">
+
+  <!-- BG orbs -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden">
+    <div class="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-blue-600/15 blur-3xl"></div>
+    <div class="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-indigo-600/10 blur-3xl"></div>
+  </div>
+
+  <div class="relative w-full max-w-xl">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/30">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+          </svg>
+        </div>
+        <h1 class="text-2xl font-bold text-white">MediCare HMS</h1>
+      </div>
+      <h2 class="text-xl font-semibold text-white">{{ form_title }}</h2>
+      <p class="text-slate-400 text-sm mt-1">Join the healthcare platform trusted by thousands</p>
+    </div>
+
+    <!-- Role toggle -->
+    <div class="flex rounded-xl bg-white/5 border border-white/10 p-1 mb-6">
+      <a href="{% url 'users:register' %}?role=patient"
+         class="flex-1 py-2 px-4 rounded-lg text-sm font-semibold text-center transition-all duration-200
+                {% if role == 'PATIENT' %}bg-blue-600 text-white shadow-lg{% else %}text-slate-400 hover:text-slate-200{% endif %}">
+        Patient
+      </a>
+      <a href="{% url 'users:register' %}?role=doctor"
+         class="flex-1 py-2 px-4 rounded-lg text-sm font-semibold text-center transition-all duration-200
+                {% if role == 'DOCTOR' %}bg-emerald-600 text-white shadow-lg{% else %}text-slate-400 hover:text-slate-200{% endif %}">
+        Doctor
+      </a>
+    </div>
+
+    <div class="glass-card p-8">
+      {% if messages %}
+      {% for message in messages %}
+      <div class="mb-4 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{{ message }}</div>
+      {% endfor %}
+      {% endif %}
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        {% if role == 'PATIENT' %}
+        <!-- Patient form layout -->
+        <div class="grid grid-cols-2 gap-4">
+          {% for field in form %}
+            {% if field.name == 'password1' or field.name == 'password2' or field.name == 'username' or field.name == 'date_of_birth' %}
+            <div class="col-span-2">
+            {% else %}
+            <div>
+            {% endif %}
+              <label class="block text-xs font-medium text-slate-400 mb-1.5">{{ field.label }}</label>
+              {{ field }}
+              {% if field.errors %}<p class="text-red-400 text-xs mt-1">{{ field.errors.0 }}</p>{% endif %}
+              {% if field.help_text %}<p class="text-slate-500 text-xs mt-1">{{ field.help_text }}</p>{% endif %}
+            </div>
+          {% endfor %}
+        </div>
+
+        {% else %}
+        <!-- Doctor form layout -->
+        <div class="grid grid-cols-2 gap-4">
+          {% for field in form %}
+            {% if field.name == 'username' or field.name == 'password1' or field.name == 'password2' or field.name == 'gmeet_url' or field.name == 'bio' %}
+            <div class="col-span-2">
+            {% else %}
+            <div>
+            {% endif %}
+              <label class="block text-xs font-medium text-slate-400 mb-1.5">{{ field.label }}</label>
+              {{ field }}
+              {% if field.errors %}<p class="text-red-400 text-xs mt-1">{{ field.errors.0 }}</p>{% endif %}
+              {% if field.help_text %}<p class="text-slate-500 text-xs mt-1">{{ field.help_text }}</p>{% endif %}
+            </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <button type="submit"
+                class="mt-6 w-full py-3 px-4 font-semibold rounded-xl transition-all duration-200 active:scale-[0.98]
+                       focus:outline-none focus:ring-2 shadow-lg
+                       {% if role == 'DOCTOR' %}bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/25 focus:ring-emerald-500/50
+                       {% else %}bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/25 focus:ring-blue-500/50{% endif %}">
+          Create Account
+        </button>
+      </form>
+
+      <p class="text-center text-slate-400 text-sm mt-6">
+        Already have an account?
+        <a href="{% url 'users:login' %}" class="text-blue-400 hover:text-blue-300 font-medium ml-1 transition-colors">Sign in</a>
+      </p>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+{% block title %}AI Doctor — MediCare HMS{% endblock %}
+
+{% block extra_head %}
+<style>
+  .skeleton-line {
+    background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
+    background-size: 1000px 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 6px;
+  }
+  @keyframes shimmer {
+    0% { background-position: -1000px 0; }
+    100% { background-position: 1000px 0; }
+  }
+  .urgency-LOW    { color: #4ade80; border-color: rgba(74,222,128,0.3); background: rgba(74,222,128,0.1); }
+  .urgency-MEDIUM { color: #facc15; border-color: rgba(250,204,21,0.3); background: rgba(250,204,21,0.1); }
+  .urgency-HIGH   { color: #fb923c; border-color: rgba(251,146,60,0.3); background: rgba(251,146,60,0.1); }
+  .urgency-CRITICAL { color: #f87171; border-color: rgba(248,113,113,0.3); background: rgba(248,113,113,0.1); animation: pulse 1.5s ease-in-out infinite; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-8 animate-fade-in">
+  <div class="flex items-center gap-3 mb-2">
+    <div class="w-9 h-9 rounded-xl bg-brand flex items-center justify-center shadow-lg shadow-brand/30">
+      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+    </div>
+    <div>
+      <h1 class="text-2xl font-bold text-white">AI Doctor</h1>
+      <p class="text-slate-400 text-sm">Powered by Google Gemini</p>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-2xl mx-auto space-y-6">
+
+  <!-- API warning banner -->
+  {% if not api_configured %}
+  <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-3 animate-slide-up">
+    <svg class="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+    <div>
+      <p class="text-amber-300 text-sm font-medium">Gemini API key not configured</p>
+      <p class="text-slate-400 text-xs mt-0.5">Add your <code class="bg-white/10 px-1 rounded text-xs">GEMINI_API_KEY</code> to <code class="bg-white/10 px-1 rounded text-xs">.env</code> for live AI responses. A demo report will be shown below.</p>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Input Form -->
+  <div class="glass-card p-6 animate-slide-up">
+    <h2 class="text-white font-semibold mb-1">Describe Your Symptoms</h2>
+    <p class="text-slate-400 text-sm mb-5">Be as specific as possible — location, duration, severity, triggers.</p>
+
+    <form method="post" id="ai-form" onsubmit="showLoader()">
+      {% csrf_token %}
+      <textarea name="symptoms" id="symptoms-input" rows="5" required
+                placeholder="e.g., I have a severe headache on the right side for 3 days, nausea when I stand up, and sensitivity to light..."
+                class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-600
+                       focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-sm resize-none">{{ symptoms }}</textarea>
+
+      <button type="submit" id="submit-btn"
+              class="mt-4 w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl
+                     shadow-lg shadow-blue-600/25 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+        Analyze Symptoms
+      </button>
+    </form>
+  </div>
+
+  <!-- Skeleton Loader (shown while waiting) -->
+  <div id="ai-skeleton" class="hidden glass-card p-6 animate-slide-up space-y-4">
+    <div class="flex items-center gap-3 mb-2">
+      <div class="w-8 h-8 rounded-lg skeleton-line"></div>
+      <div class="flex-1">
+        <div class="h-4 skeleton-line w-1/2 mb-2"></div>
+        <div class="h-3 skeleton-line w-1/3"></div>
+      </div>
+    </div>
+    <div class="h-16 skeleton-line w-full"></div>
+    <div class="grid grid-cols-2 gap-3">
+      <div class="h-20 skeleton-line"></div>
+      <div class="h-20 skeleton-line"></div>
+    </div>
+    <div class="h-12 skeleton-line w-3/4"></div>
+    <p class="text-center text-slate-500 text-xs animate-pulse">🧠 AI is analyzing your symptoms...</p>
+  </div>
+
+  <!-- Report Card -->
+  {% if report %}
+  <div id="report-card" class="space-y-4 animate-slide-up">
+
+    {% if report.error %}
+    <div class="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm">
+      {{ report.error }}
+    </div>
+    {% endif %}
+
+    <!-- Urgency Banner -->
+    <div class="glass-card p-5 border urgency-{{ report.urgency }}">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-bold uppercase tracking-widest opacity-70">Urgency Level</span>
+        <span class="px-3 py-1 rounded-full text-sm font-bold border urgency-{{ report.urgency }}">
+          {{ report.urgency }}
+        </span>
+      </div>
+      <p class="text-sm opacity-80">{{ report.urgency_reason }}</p>
+    </div>
+
+    <!-- Main Info Grid -->
+    <div class="grid grid-cols-2 gap-4">
+      <!-- Specialist -->
+      <div class="glass-card p-5">
+        <p class="text-slate-400 text-xs font-medium uppercase tracking-wide mb-2">Recommended Specialist</p>
+        <p class="text-white font-bold text-lg">{{ report.recommended_specialist }}</p>
+        <p class="text-slate-400 text-xs mt-1">{{ report.specialist_reason }}</p>
+        <a href="{% url 'hospital:book_appointment' %}"
+           class="mt-3 inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 text-xs font-medium transition-colors">
+          Book now →
+        </a>
+      </div>
+
+      <!-- Key Symptoms -->
+      <div class="glass-card p-5">
+        <p class="text-slate-400 text-xs font-medium uppercase tracking-wide mb-3">Key Symptoms Detected</p>
+        <div class="space-y-1.5">
+          {% for symptom in report.key_symptoms %}
+          <div class="flex items-center gap-2 text-slate-300 text-xs">
+            <div class="w-1.5 h-1.5 rounded-full bg-brand-light flex-shrink-0"></div>
+            {{ symptom }}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="glass-card p-5">
+      <p class="text-slate-400 text-xs font-medium uppercase tracking-wide mb-2">Clinical Summary</p>
+      <p class="text-slate-200 text-sm leading-relaxed">{{ report.summary }}</p>
+    </div>
+
+    <!-- Tests & Tips -->
+    <div class="grid grid-cols-2 gap-4">
+      <div class="glass-card p-5">
+        <p class="text-slate-400 text-xs font-medium uppercase tracking-wide mb-3">Suggested Tests</p>
+        <ul class="space-y-1.5">
+          {% for test in report.suggested_tests %}
+          <li class="text-slate-300 text-xs flex items-center gap-2">
+            <svg class="w-3 h-3 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            {{ test }}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div class="glass-card p-5">
+        <p class="text-slate-400 text-xs font-medium uppercase tracking-wide mb-3">Lifestyle Tips</p>
+        <ul class="space-y-1.5">
+          {% for tip in report.lifestyle_tips %}
+          <li class="text-slate-300 text-xs flex items-center gap-2">
+            <svg class="w-3 h-3 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            {{ tip }}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <!-- Disclaimer -->
+    <div class="p-4 rounded-xl bg-white/3 border border-white/5 text-slate-500 text-xs text-center leading-relaxed">
+      ⚕️ {{ report.disclaimer }}
+    </div>
+
+  </div>
+  {% endif %}
+
+</div>
+
+<script src="{% static 'js/ai_loader.js' %}"></script>
+{% endblock %}

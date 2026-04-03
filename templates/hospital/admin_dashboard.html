@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard — MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="mb-8 animate-fade-in">
+  <h1 class="text-2xl font-bold text-white">System Overview</h1>
+  <p class="text-slate-400 mt-1 text-sm">Hospital Management System — Administrator View</p>
+</div>
+
+<!-- Stats Grid -->
+<div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+  <div class="glass-card p-5 animate-slide-up" style="animation-delay:0.05s">
+    <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center mb-3">
+      <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+    </div>
+    <p class="text-2xl font-bold text-white">{{ total_patients }}</p>
+    <p class="text-slate-500 text-xs mt-1">Patients</p>
+  </div>
+  <div class="glass-card p-5 animate-slide-up" style="animation-delay:0.1s">
+    <div class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center mb-3">
+      <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+    </div>
+    <p class="text-2xl font-bold text-white">{{ total_doctors }}</p>
+    <p class="text-slate-500 text-xs mt-1">Doctors</p>
+  </div>
+  <div class="glass-card p-5 animate-slide-up" style="animation-delay:0.15s">
+    <div class="w-8 h-8 rounded-lg bg-slate-500/20 flex items-center justify-center mb-3">
+      <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+    </div>
+    <p class="text-2xl font-bold text-white">{{ total_appointments }}</p>
+    <p class="text-slate-500 text-xs mt-1">Total Appointments</p>
+  </div>
+  <div class="glass-card p-5 animate-slide-up" style="animation-delay:0.2s">
+    <div class="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center mb-3">
+      <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+    <p class="text-2xl font-bold text-amber-400">{{ pending_appointments }}</p>
+    <p class="text-slate-500 text-xs mt-1">Pending</p>
+  </div>
+  <div class="glass-card p-5 animate-slide-up" style="animation-delay:0.25s">
+    <div class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center mb-3">
+      <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+    </div>
+    <p class="text-2xl font-bold text-emerald-400">{{ completed_appointments }}</p>
+    <p class="text-slate-500 text-xs mt-1">Completed</p>
+  </div>
+</div>
+
+<div class="grid lg:grid-cols-3 gap-6">
+
+  <!-- Recent Appointments -->
+  <div class="lg:col-span-2 glass-card animate-slide-up" style="animation-delay:0.3s">
+    <div class="p-6 border-b border-white/5">
+      <h2 class="text-white font-semibold">Recent Appointments</h2>
+    </div>
+    <div class="divide-y divide-white/5">
+      {% for appt in recent_appointments %}
+      <div class="px-6 py-4 flex items-center gap-4">
+        <div class="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+          {{ appt.patient.first_name|first|upper }}
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-slate-200 text-sm font-medium truncate">{{ appt.patient.get_full_name }}</p>
+          <p class="text-slate-500 text-xs truncate">→ Dr. {{ appt.doctor.get_full_name }} &bull; {{ appt.appointment_date }}</p>
+        </div>
+        <span class="px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0
+          {% if appt.status == 'PENDING' %}bg-amber-500/15 text-amber-300
+          {% elif appt.status == 'APPROVED' %}bg-blue-500/15 text-blue-300
+          {% elif appt.status == 'COMPLETED' %}bg-emerald-500/15 text-emerald-300
+          {% else %}bg-red-500/15 text-red-300{% endif %}">
+          {{ appt.get_status_display }}
+        </span>
+      </div>
+      {% empty %}
+      <div class="py-12 text-center text-slate-500 text-sm">No appointments yet.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Top Doctors -->
+  <div class="glass-card animate-slide-up" style="animation-delay:0.35s">
+    <div class="p-6 border-b border-white/5">
+      <h2 class="text-white font-semibold">Top Doctors</h2>
+    </div>
+    <div class="p-4 space-y-3">
+      {% for doc in top_doctors %}
+      <div class="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors">
+        <div class="w-9 h-9 rounded-full bg-emerald-900/40 border border-emerald-600/20 flex items-center justify-center text-xs font-bold text-emerald-300 flex-shrink-0">
+          {{ doc.first_name|first|upper }}
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-slate-200 text-sm font-medium truncate">Dr. {{ doc.get_full_name }}</p>
+          <p class="text-slate-500 text-xs truncate">{{ doc.doctor_profile.specialization|default:"Physician" }}</p>
+        </div>
+        <span class="text-slate-400 text-xs font-semibold">{{ doc.appt_count }}</span>
+      </div>
+      {% empty %}
+      <p class="text-slate-500 text-sm text-center py-6">No doctors yet.</p>
+      {% endfor %}
+    </div>
+    <div class="p-4 border-t border-white/5">
+      <a href="/admin/" class="flex items-center justify-center gap-2 w-full py-2 rounded-xl border border-white/10 hover:border-white/20 text-slate-400 hover:text-white text-sm font-medium transition-all">
+        Open Django Admin →
+      </a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

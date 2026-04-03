@@ -1,0 +1,176 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="MediCare HMS — Professional Hospital Management System" />
+  <title>{% block title %}MediCare HMS{% endblock %}</title>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            navy:  { DEFAULT: '#0f172a', 50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1', 400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155', 800: '#1e293b', 900: '#0f172a' },
+            brand: { DEFAULT: '#3b82f6', light: '#60a5fa', dark: '#1d4ed8' },
+          },
+          backgroundImage: {
+            'gradient-sidebar': 'linear-gradient(180deg, #0f172a 0%, #1e293b 100%)',
+          },
+          animation: {
+            'fade-in':   'fadeIn 0.4s ease-out',
+            'slide-up':  'slideUp 0.4s ease-out',
+            'pulse-soft':'pulseSoft 2s ease-in-out infinite',
+            'shimmer':   'shimmer 1.5s infinite',
+          },
+          keyframes: {
+            fadeIn:    { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+            slideUp:   { '0%': { opacity: '0', transform: 'translateY(16px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+            pulseSoft: { '0%,100%': { opacity: '1' }, '50%': { opacity: '.6' } },
+            shimmer:   { '0%': { backgroundPosition: '-1000px 0' }, '100%': { backgroundPosition: '1000px 0' } },
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- Custom styles -->
+  <link rel="stylesheet" href="{% static 'css/custom.css' %}" />
+  {% block extra_head %}{% endblock %}
+</head>
+
+<body class="h-full bg-navy-900 text-white font-sans antialiased">
+  {% if user.is_authenticated %}
+  <!-- ─── LAYOUT SHELL ───────────────────────────────────────────────── -->
+  <div class="flex h-full min-h-screen">
+
+    <!-- Sidebar -->
+    <aside id="sidebar"
+           class="fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-gradient-sidebar border-r border-white/5 transition-transform duration-300 ease-in-out
+                  -translate-x-full lg:translate-x-0">
+
+      <!-- Logo -->
+      <div class="flex items-center gap-3 px-6 py-5 border-b border-white/10">
+        <div class="w-9 h-9 rounded-xl bg-brand flex items-center justify-center shadow-lg">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-white font-bold text-sm leading-tight">MediCare HMS</h1>
+          <p class="text-navy-400 text-xs">Healthcare Platform</p>
+        </div>
+      </div>
+
+      <!-- User pill -->
+      <div class="mx-4 mt-4 mb-2 p-3 rounded-xl bg-white/5 border border-white/10">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full bg-brand/30 border border-brand/50 flex items-center justify-center text-xs font-bold text-brand-light">
+            {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-white text-xs font-semibold truncate">{{ user.get_full_name|default:user.username }}</p>
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
+              {% if user.role == 'ADMIN' %}bg-purple-500/20 text-purple-300
+              {% elif user.role == 'DOCTOR' %}bg-emerald-500/20 text-emerald-300
+              {% else %}bg-brand/20 text-brand-light{% endif %}">
+              {{ user.get_role_display }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        {% if user.role == 'PATIENT' %}
+          {% include 'partials/nav_patient.html' %}
+        {% elif user.role == 'DOCTOR' %}
+          {% include 'partials/nav_doctor.html' %}
+        {% elif user.role == 'ADMIN' %}
+          {% include 'partials/nav_admin.html' %}
+        {% endif %}
+      </nav>
+
+      <!-- Logout -->
+      <div class="p-4 border-t border-white/10">
+        <a href="{% url 'users:logout' %}"
+           class="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-navy-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200 text-sm font-medium group">
+          <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+          </svg>
+          Sign Out
+        </a>
+      </div>
+    </aside>
+
+    <!-- Mobile overlay -->
+    <div id="sidebar-overlay"
+         class="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden hidden"
+         onclick="toggleSidebar()"></div>
+
+    <!-- Main area -->
+    <div class="flex-1 flex flex-col min-h-screen lg:ml-64">
+
+      <!-- Top bar (mobile) -->
+      <header class="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-navy-900/80 backdrop-blur-md border-b border-white/5 lg:hidden">
+        <button id="sidebar-toggle" onclick="toggleSidebar()"
+                class="p-2 rounded-lg text-navy-400 hover:text-white hover:bg-white/10 transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+        <span class="text-white font-semibold text-sm">MediCare HMS</span>
+        <div class="w-8"></div>
+      </header>
+
+      <!-- Page content -->
+      <main class="flex-1 p-4 lg:p-8">
+
+        <!-- Flash messages -->
+        {% if messages %}
+        <div class="mb-6 space-y-2" id="flash-messages">
+          {% for message in messages %}
+          <div class="flex items-center gap-3 px-4 py-3 rounded-xl border animate-slide-up
+            {% if message.tags == 'success' %}bg-emerald-500/10 border-emerald-500/30 text-emerald-300
+            {% elif message.tags == 'error' %}bg-red-500/10 border-red-500/30 text-red-300
+            {% elif message.tags == 'warning' %}bg-amber-500/10 border-amber-500/30 text-amber-300
+            {% else %}bg-brand/10 border-brand/30 text-brand-light{% endif %}">
+            <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              {% if message.tags == 'success' %}
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              {% else %}
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+              {% endif %}
+            </svg>
+            <span class="text-sm font-medium">{{ message }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+
+  {% else %}
+  <!-- Unauthenticated layout (auth pages) -->
+  {% block auth_content %}{% endblock %}
+  {% endif %}
+
+  <!-- Sidebar JS -->
+  <script src="{% static 'js/sidebar.js' %}"></script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,233 @@
+{% extends 'base.html' %}
+
+{% block title %}Patient Dashboard — MediCare HMS{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="mb-8 animate-fade-in">
+  <h1 class="text-2xl font-bold text-white">Good day, {{ user.first_name|default:user.username }} 👋</h1>
+  <p class="text-slate-400 mt-1 text-sm">Here's your health overview for today.</p>
+</div>
+
+<!-- Stats Row -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+  <!-- Total -->
+  <div class="glass-card p-5 animate-slide-up" style="animation-delay:0.05s">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-slate-400 text-xs font-medium uppercase tracking-wide">Total</span>
+      <div class="w-8 h-8 rounded-lg bg-slate-500/20 flex items-center justify-center">
+        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      </div>
+    </div>
+    <p class="text-3xl font-bold text-white">{{ total_appointments }}</p>
+    <p class="text-slate-500 text-xs mt-1">All appointments</p>
+  </div>
+
+  <!-- Pending -->
+  <div class="glass-card p-5 animate-slide-up" style="animation-delay:0.1s">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-slate-400 text-xs font-medium uppercase tracking-wide">Pending</span>
+      <div class="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
+        <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+    </div>
+    <p class="text-3xl font-bold text-amber-400">{{ pending_count }}</p>
+    <p class="text-slate-500 text-xs mt-1">Awaiting approval</p>
+  </div>
+
+  <!-- Approved -->
+  <div class="glass-card p-5 animate-slide-up" style="animation-delay:0.15s">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-slate-400 text-xs font-medium uppercase tracking-wide">Approved</span>
+      <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+        <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+    </div>
+    <p class="text-3xl font-bold text-blue-400">{{ approved_count }}</p>
+    <p class="text-slate-500 text-xs mt-1">Confirmed</p>
+  </div>
+
+  <!-- Completed -->
+  <div class="glass-card p-5 animate-slide-up" style="animation-delay:0.2s">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-slate-400 text-xs font-medium uppercase tracking-wide">Completed</span>
+      <div class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+        <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+      </div>
+    </div>
+    <p class="text-3xl font-bold text-emerald-400">{{ completed_count }}</p>
+    <p class="text-slate-500 text-xs mt-1">Consultations done</p>
+  </div>
+</div>
+
+<!-- Main Grid -->
+<div class="grid lg:grid-cols-3 gap-6">
+
+  <!-- Upcoming Appointments -->
+  <div class="lg:col-span-2">
+    <div class="glass-card animate-slide-up" style="animation-delay:0.25s">
+      <div class="flex items-center justify-between p-6 border-b border-white/5">
+        <h2 class="text-white font-semibold">Upcoming Appointments</h2>
+        <a href="{% url 'hospital:book_appointment' %}"
+           class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition-colors">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          Book New
+        </a>
+      </div>
+
+      {% if appointments %}
+      <div class="divide-y divide-white/5">
+        {% for appt in appointments %}
+        <div class="p-5 hover:bg-white/3 transition-colors">
+          <div class="flex items-start justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-brand/20 border border-brand/30 flex items-center justify-center text-sm font-bold text-brand-light flex-shrink-0">
+                {{ appt.doctor.first_name|first|upper }}
+              </div>
+              <div>
+                <p class="text-white font-medium text-sm">Dr. {{ appt.doctor.get_full_name }}</p>
+                <p class="text-slate-400 text-xs">{{ appt.doctor.doctor_profile.specialization|default:"Physician" }}</p>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="text-slate-500 text-xs">{{ appt.appointment_date }} at {{ appt.appointment_time }}</span>
+                  <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium
+                    {% if appt.appointment_type == 'ONLINE' %}bg-indigo-500/20 text-indigo-300
+                    {% else %}bg-slate-500/20 text-slate-300{% endif %}">
+                    {% if appt.appointment_type == 'ONLINE' %}
+                    <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zm12.553 1.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"/></svg>
+                    {% endif %}
+                    {{ appt.get_appointment_type_display }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex flex-col items-end gap-2">
+              <!-- Status badge -->
+              <span class="px-2.5 py-1 rounded-full text-xs font-semibold
+                {% if appt.status == 'PENDING' %}bg-amber-500/15 text-amber-300 border border-amber-500/20
+                {% elif appt.status == 'APPROVED' %}bg-blue-500/15 text-blue-300 border border-blue-500/20
+                {% else %}bg-emerald-500/15 text-emerald-300 border border-emerald-500/20{% endif %}">
+                {{ appt.get_status_display }}
+              </span>
+
+              <!-- 🚀 Join Meeting button - only for Online + Approved -->
+              {% if appt.can_join_meeting %}
+              {% with appt.get_gmeet_url as gmeet %}
+              {% if gmeet %}
+              <a href="{{ gmeet }}" target="_blank" rel="noopener noreferrer"
+                 class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg
+                        shadow-lg shadow-emerald-600/25 hover:shadow-emerald-500/30 transition-all animate-pulse-soft">
+                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zm12.553 1.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"/></svg>
+                Join Meeting
+              </a>
+              {% endif %}
+              {% endwith %}
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="p-12 text-center">
+        <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-4">
+          <svg class="w-8 h-8 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        </div>
+        <p class="text-slate-400 font-medium">No upcoming appointments</p>
+        <p class="text-slate-600 text-sm mt-1">Book your first consultation with a doctor.</p>
+        <a href="{% url 'hospital:book_appointment' %}"
+           class="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl transition-colors">
+          Book Appointment
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Side column -->
+  <div class="space-y-6">
+
+    <!-- Quick Actions -->
+    <div class="glass-card p-5 animate-slide-up" style="animation-delay:0.3s">
+      <h3 class="text-white font-semibold mb-4 text-sm">Quick Actions</h3>
+      <div class="space-y-2">
+        <a href="{% url 'hospital:book_appointment' %}"
+           class="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 text-slate-300 hover:text-white transition-all group">
+          <div class="w-8 h-8 rounded-lg bg-blue-600/20 flex items-center justify-center group-hover:bg-blue-600/30 transition-colors">
+            <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          </div>
+          <span class="text-sm font-medium">Book Appointment</span>
+        </a>
+        <a href="{% url 'hospital:medical_records' %}"
+           class="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 text-slate-300 hover:text-white transition-all group">
+          <div class="w-8 h-8 rounded-lg bg-purple-600/20 flex items-center justify-center group-hover:bg-purple-600/30 transition-colors">
+            <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          </div>
+          <span class="text-sm font-medium">Upload Records</span>
+        </a>
+        <a href="{% url 'api:ai_doctor' %}"
+           class="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 text-slate-300 hover:text-white transition-all group">
+          <div class="w-8 h-8 rounded-lg bg-emerald-600/20 flex items-center justify-center group-hover:bg-emerald-600/30 transition-colors">
+            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+          </div>
+          <span class="text-sm font-medium">AI Doctor Consult</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Recent Bills -->
+    {% if bills %}
+    <div class="glass-card p-5 animate-slide-up" style="animation-delay:0.35s">
+      <h3 class="text-white font-semibold mb-4 text-sm">Recent Bills</h3>
+      <div class="space-y-3">
+        {% for bill in bills|slice:":4" %}
+        <div class="flex items-center justify-between py-2">
+          <div>
+            <p class="text-slate-300 text-xs font-medium">INV-{{ bill.pk|stringformat:"05d" }}</p>
+            <p class="text-slate-500 text-xs">{{ bill.issued_at|date:"d M Y" }}</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-white font-semibold text-sm">₹{{ bill.amount }}</span>
+            <a href="{% url 'hospital:download_bill' bill.pk %}"
+               class="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+               title="Download PDF">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            </a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Records -->
+    {% if recent_records %}
+    <div class="glass-card p-5 animate-slide-up" style="animation-delay:0.4s">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-white font-semibold text-sm">Medical Vault</h3>
+        <a href="{% url 'hospital:medical_records' %}" class="text-blue-400 hover:text-blue-300 text-xs transition-colors">View all</a>
+      </div>
+      <div class="space-y-2">
+        {% for rec in recent_records %}
+        <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0
+            {% if rec.is_pdf %}bg-red-500/20{% else %}bg-blue-500/20{% endif %}">
+            {% if rec.is_pdf %}
+            <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            {% else %}
+            <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            {% endif %}
+          </div>
+          <div class="min-w-0">
+            <p class="text-slate-300 text-xs font-medium truncate">{{ rec.title }}</p>
+            <p class="text-slate-500 text-xs">{{ rec.uploaded_at|date:"d M" }}</p>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}
