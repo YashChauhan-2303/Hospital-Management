@@ -12,7 +12,9 @@ logger = logging.getLogger(__name__)
 class GeminiService:
     """Wrapper around the Gemini generative AI API."""
 
-    MODEL_NAME = 'gemini-1.5-flash'
+    # Try latest models first, then fall back to older ones
+    MODEL_NAMES = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite']
+    MODEL_NAME = 'gemini-2.5-flash'
 
     SYSTEM_PROMPT = """You are a senior medical AI assistant for MediCare HMS.
 A patient will describe their symptoms. Your job is to generate a professional
@@ -52,25 +54,39 @@ Be accurate, empathetic, and professional. Always include the disclaimer."""
             import google.generativeai as genai
             genai.configure(api_key=settings.GEMINI_API_KEY)
 
-            model = genai.GenerativeModel(
-                model_name=cls.MODEL_NAME,
-                system_instruction=cls.SYSTEM_PROMPT,
-            )
+            # Try each model in order
+            last_error = None
+            for model_name in cls.MODEL_NAMES:
+                try:
+                    model = genai.GenerativeModel(
+                        model_name=model_name,
+                        system_instruction=cls.SYSTEM_PROMPT,
+                    )
 
-            prompt = f"Patient's symptoms: {symptoms}"
-            response = model.generate_content(prompt)
-            raw_text = response.text.strip()
+                    prompt = f"Patient's symptoms: {symptoms}"
+                    response = model.generate_content(prompt)
+                    raw_text = response.text.strip()
 
-            # Strip markdown fences if present
-            if raw_text.startswith('```'):
-                raw_text = raw_text.split('```')[1]
-                if raw_text.startswith('json'):
-                    raw_text = raw_text[4:]
-                raw_text = raw_text.strip()
+                    # Strip markdown fences if present
+                    if raw_text.startswith('```'):
+                        raw_text = raw_text.split('```')[1]
+                        if raw_text.startswith('json'):
+                            raw_text = raw_text[4:]
+                        raw_text = raw_text.strip()
 
-            report = json.loads(raw_text)
-            report['error'] = None
-            return report
+                    report = json.loads(raw_text)
+                    report['error'] = None
+                    logger.info(f"Successfully used model: {model_name}")
+                    return report
+                except Exception as e:
+                    last_error = str(e)
+                    logger.warning(f"Model {model_name} failed: {e}. Trying next model...")
+                    continue
+
+            # If all models fail, return error
+            if last_error:
+                logger.error(f"All models failed. Last error: {last_error}")
+                return cls._fallback_response(symptoms, error="Could not reach Gemini API. Please try again later.")
 
         except json.JSONDecodeError as e:
             logger.error(f"Gemini JSON parse error: {e}")

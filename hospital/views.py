@@ -2,8 +2,10 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 from django.http import FileResponse, Http404
+from django.utils import timezone
+from datetime import timedelta
 from .models import Appointment, MedicalRecord, Billing
 from .forms import AppointmentForm, DoctorNoteForm, MedicalRecordForm
 from .utils import generate_billing_pdf
@@ -177,10 +179,17 @@ def complete_appointment(request, appointment_pk):
                 appointment=appointment,
                 amount=fee,
             )
-            generate_billing_pdf(billing)
-            billing.save()
 
-            messages.success(request, 'Appointment completed and invoice generated!')
+            # Check if payment was received
+            is_paid = note_form.cleaned_data.get('is_paid', False)
+            if is_paid:
+                billing.mark_paid()
+                messages.success(request, 'Appointment completed and payment recorded!')
+            else:
+                generate_billing_pdf(billing)
+                billing.save()
+                messages.success(request, 'Appointment completed and invoice generated!')
+
             return redirect('hospital:doctor_dashboard')
     else:
         note_form = DoctorNoteForm(instance=appointment)
@@ -193,12 +202,92 @@ def complete_appointment(request, appointment_pk):
 
 @login_required
 @role_required('DOCTOR')
+def doctor_analytics(request):
+    """Doctor analytics and earnings dashboard."""
+    # Analytics data for earnings and consultations
+    completed_appointments = Appointment.objects.filter(
+        doctor=request.user,
+        status='COMPLETED'
+    ).select_related('billing')
+
+    total_consultations = completed_appointments.count()
+
+    # Get billing info
+    billings = Billing.objects.filter(
+        appointment__doctor=request.user
+    ).select_related('appointment')
+
+    total_earnings = billings.aggregate(total=Sum('amount'))['total'] or 0
+    paid_earnings = billings.filter(is_paid=True).aggregate(total=Sum('amount'))['total'] or 0
+    pending_earnings = billings.filter(is_paid=False).aggregate(total=Sum('amount'))['total'] or 0
+
+    # Monthly earnings (last 6 months)
+    now = timezone.now()
+    monthly_earnings = []
+    for i in range(5, -1, -1):
+        month_start = (now - timedelta(days=30*i)).replace(day=1)
+        month_end = (now - timedelta(days=30*(i-1))).replace(day=1) if i > 0 else now
+
+        month_total = Billing.objects.filter(
+            appointment__doctor=request.user,
+            issued_at__gte=month_start,
+            issued_at__lt=month_end
+        ).aggregate(total=Sum('amount'))['total'] or 0
+
+        monthly_earnings.append({
+            'month': month_start.strftime('%b %Y'),
+            'earnings': float(month_total)
+        })
+
+    # Recent completed with fees
+    recent_completed = completed_appointments[:10]
+
+    context = {
+        'total_consultations': total_consultations,
+        'total_earnings': float(total_earnings),
+        'paid_earnings': float(paid_earnings),
+        'pending_earnings': float(pending_earnings),
+        'average_fee': float(total_earnings / total_consultations) if total_consultations > 0 else 0,
+        'monthly_earnings': monthly_earnings,
+        'recent_completed': recent_completed,
+    }
+    return render(request, 'hospital/doctor_analytics.html', context)
+
+
+@login_required
+@role_required('DOCTOR')
 def cancel_appointment(request, appointment_pk):
     appointment = get_object_or_404(Appointment, pk=appointment_pk, doctor=request.user)
     appointment.status = Appointment.STATUS_CANCELLED
     appointment.save()
     messages.info(request, 'Appointment cancelled.')
     return redirect('hospital:doctor_dashboard')
+
+
+@login_required
+@role_required('DOCTOR')
+def toggle_payment_status(request, billing_pk):
+    """Toggle payment status for a billing record."""
+    billing = get_object_or_404(Billing, pk=billing_pk, appointment__doctor=request.user)
+
+    if request.method == 'POST':
+        # Toggle payment status
+        if billing.is_paid:
+            billing.is_paid = False
+            billing.paid_at = None
+            messages.info(request, 'Payment marked as unpaid.')
+        else:
+            billing.is_paid = True
+            billing.paid_at = timezone.now()
+            messages.success(request, 'Payment marked as paid!')
+
+        billing.save()
+
+    # Redirect to referrer or analytics page
+    referrer = request.META.get('HTTP_REFERER', 'hospital:doctor_analytics')
+    return redirect(referrer) if referrer else redirect('hospital:doctor_analytics')
+
+
 
 
 # ─── ADMIN VIEWS ─────────────────────────────────────────────────────────────

@@ -37,6 +37,15 @@ class AppointmentForm(forms.ModelForm):
 
 
 class DoctorNoteForm(forms.ModelForm):
+    is_paid = forms.BooleanField(
+        required=False,
+        label='Payment Received',
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-checkbox',
+        }),
+        help_text='Check if the patient has paid for this consultation'
+    )
+
     class Meta:
         model = Appointment
         fields = ['notes']
