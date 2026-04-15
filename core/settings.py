@@ -104,3 +104,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Gemini API
 GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
+
+# reCAPTCHA Configuration (Google reCAPTCHA v3)
+RECAPTCHA_PUBLIC_KEY = config('RECAPTCHA_PUBLIC_KEY', default='')
+RECAPTCHA_PRIVATE_KEY = config('RECAPTCHA_PRIVATE_KEY', default='')
+SILENCED_SYSTEM_CHECKS = ['captcha.recaptcha_test_key_error']
